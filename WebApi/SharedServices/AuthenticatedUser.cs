@@ -7,9 +7,15 @@ namespace WebApi.SharedServices
 {
     public class AuthenticatedUser : IAuthenticatedUser
     {       
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
-        //Registration: Requires builder.Services.AddHttpContextAccessor(); in Program.cs.
+        //The code public AuthenticatedUser(IHttpContextAccessor httpContextAccessor)
+        //  is a constructor for a custom service in an ASP.NET Core application,
+        //  typically used to access the current authenticated user's information from
+        //  a non-controller class via dependency injection. 
+
+        //IHttpContextAccessor: An interface provided by ASP.NET Core that allows access to the current HttpContext
+        //  from outside of controllers or middleware components
         public AuthenticatedUser(IHttpContextAccessor httpContextAccessor)
         {
             if (httpContextAccessor is not null)

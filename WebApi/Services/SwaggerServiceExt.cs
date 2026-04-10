@@ -2,7 +2,7 @@
 
 namespace WebApi.Services
 {
-    public static class ServiceExtensions
+    public static class SwaggerServiceExt
     {
         public static void AddSwaggerExtension(this IServiceCollection services)
         {

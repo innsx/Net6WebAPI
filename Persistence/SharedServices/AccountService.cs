@@ -132,13 +132,13 @@ namespace Persistence.SharedServices
             return new CustomizedAPIResponse<bool>(true, "Email Confirmation sent to your email account, please verify your account");
         }
 
-        public async Task<CustomizedAPIResponse<AuthenticationResponse>> Authenticate(AuthenticationRequest authenticationRequest)
+        public async Task<CustomizedAPIResponse<AuthnResponseDto>> Authenticate(AuthnRequestDto authnRequestDto)
         {
-            var user = await _userManager.FindByEmailAsync(authenticationRequest.Email);
+            var user = await _userManager.FindByEmailAsync(authnRequestDto.Email);
 
             if (user is null)
             {
-                throw new ApiErrorExceptions($"User is not registerd with this email {authenticationRequest.Email}.");
+                throw new ApiErrorExceptions($"User is not registerd with this email {authnRequestDto.Email}.");
             }
 
             if (user.EmailConfirmed == false)
@@ -151,7 +151,7 @@ namespace Persistence.SharedServices
                 throw new ApiErrorExceptions($"Your account is locked. Please try login later.");
             }
              
-            var isPasswordValid = await _userManager.CheckPasswordAsync(user, authenticationRequest.Password);
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, authnRequestDto.Password);
 
             if (isPasswordValid == false)
             {
@@ -159,21 +159,21 @@ namespace Persistence.SharedServices
                 throw new ApiErrorExceptions("Email or Password is incorrected.");
             }
 
-            var authResponse = new AuthenticationResponse();
+            var authResponseDto = new AuthnResponseDto();
 
-            authResponse.Id = user.Id;
-            authResponse.UserName = user.UserName;
-            authResponse.Email = user.Email;
-            authResponse.IsVerified = user.EmailConfirmed;
+            authResponseDto.Id = user.Id;
+            authResponseDto.UserName = user.UserName;
+            authResponseDto.Email = user.Email;
+            authResponseDto.IsVerified = user.EmailConfirmed;
 
             var roles = await _userManager.GetRolesAsync(user);
-            authResponse.Roles = roles.ToList();
+            authResponseDto.Roles = roles.ToList();
 
             var jwtSecurityToken = await GenerateTokenAsync(user);
 
-            authResponse.JWToken = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
+            authResponseDto.JWToken = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
 
-            return new CustomizedAPIResponse<AuthenticationResponse>(authResponse, "User is Authenticated.");
+            return new CustomizedAPIResponse<AuthnResponseDto>(authResponseDto, "User is Authenticated.");
         }
 
         private async Task<JwtSecurityToken> GenerateTokenAsync(ApplicationUser applicationUser)
@@ -252,7 +252,8 @@ namespace Persistence.SharedServices
 
             string token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-            token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+            byte[] encodedTokenArray = Encoding.UTF8.GetBytes(token);
+            token = WebEncoders.Base64UrlEncode(encodedTokenArray);
 
             var resetPasswordLink = $"{_configuration["ClientUrl"]}/api/accounts/reset-password?email={userEmail}&token={token}";
 

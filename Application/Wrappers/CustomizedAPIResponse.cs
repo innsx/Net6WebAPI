@@ -2,6 +2,12 @@
 {
     public class CustomizedAPIResponse<Ttype>
     {
+        public Ttype? Data { get; set; }
+        public bool Succeed { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<string> Errors { get; set; } = new List<string>();
+
+
         //DEFAULT CONSTRUCTOR  
         public CustomizedAPIResponse()
         {            
@@ -21,10 +27,5 @@
             Succeed = false;
             Message = message;
         }
-
-        public bool Succeed { get; set; }
-        public string Message { get; set; } = string.Empty;
-        public List<string> Errors { get; set; } = new List<string>();
-        public Ttype? Data { get; set; }
     }
 }

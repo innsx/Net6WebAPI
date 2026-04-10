@@ -19,14 +19,20 @@ namespace WebApi.Controllers
         }
 
         [HttpPost("RegisterUser")]
+        [ProducesResponseType(StatusCodes.Status200OK)]   
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]     
         public async Task<IActionResult> RegisterUser(RegisterUserDto registerUserDto, CancellationToken cancellationToken)
         {
             var result = await _accountService.RegisterUser(registerUserDto);
             return Ok(result);
         }
 
-        [HttpPost("Authentication")]
-        public async Task<IActionResult> Authentication(AuthenticationRequest authModel, CancellationToken cancellationToken)
+        [HttpPost("Login")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Authentication(AuthnRequestDto authModel, CancellationToken cancellationToken)
         {
             var result = await _accountService.Authenticate(authModel);
             return Ok(result);
@@ -34,6 +40,9 @@ namespace WebApi.Controllers
 
 
         [HttpGet("confirm-email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ConfirmEmail([FromQuery] string userId, string token, CancellationToken cancellationToken)
         {
             var result = await _accountService.ConfirmEmail(userId, token);
@@ -41,6 +50,9 @@ namespace WebApi.Controllers
         }
 
         [HttpGet("resend-confirm-email")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ResendConfirmEmail(string email, CancellationToken cancellationToken)
         {
             var result = await _accountService.ReSendConfirmationEmailAsync(email);
@@ -48,6 +60,8 @@ namespace WebApi.Controllers
         }
 
         [HttpGet("forgot-password")]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> ForgotPassword([FromQuery] string email, CancellationToken cancellationToken)
         {
             var result = await _accountService.ForgotPasswordAsync(email);
@@ -55,7 +69,9 @@ namespace WebApi.Controllers
         }
 
 
-        [HttpPost("reset-password")]
+        [HttpPost("reset-password")]       
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult> ResetPassword(ResetPasswordRequestDto resetPasswordRequestDto, CancellationToken cancellationToken)
         {
             var result = await _accountService.ResetUserPasswordAsync(resetPasswordRequestDto);

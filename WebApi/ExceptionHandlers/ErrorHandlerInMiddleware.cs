@@ -26,13 +26,15 @@ namespace WebApi.ExceptionHandlers
         {
             try
             {
-                //Pipeline Flow: await _next(context); invokes the next middleware.
+                //Pipeline Flow: await _requestDelegateNext(context); invokes the next middleware.
                 //Request Interception: Allows executing code before passing the request to the rest of the pipeline.
                 await _requestDelegateNext(httpContext);
 
-                //Response Interception: Allows executing code after _next has finished, enabling modification of the response.
+                //Response Interception: Allows executing code after _next has finished,
+                //                         enabling modification of the response.
 
-                //Terminal Middleware: If the middleware handles the request entirely and does not call _next, it is considered "terminal" or "short-circuiting" the pipeline.
+                //Terminal Middleware: If the middleware handles the request entirely and does not call _next,
+                //                      it is considered "terminal" or "short-circuiting" the pipeline.
             }
             catch (Exception ex)
             {
@@ -40,7 +42,7 @@ namespace WebApi.ExceptionHandlers
 
                 httpResponse.ContentType = "application/json";
 
-                var responseModel = new CustomizedAPIResponse<string> { Succeed = false, Message  = ex.Message };
+                var apiResponseModel = new CustomizedAPIResponse<string> { Succeed = false, Message  = ex.Message };
 
                 switch (ex)
                 {
@@ -50,7 +52,7 @@ namespace WebApi.ExceptionHandlers
 
                     case ValidationErrorExceptions e:
                         httpResponse.StatusCode = (int)HttpStatusCode.BadRequest;
-                        responseModel.Errors = e.Errors!;
+                        apiResponseModel.Errors = e.Errors!;
                         break;
 
                     default:
@@ -60,7 +62,7 @@ namespace WebApi.ExceptionHandlers
 
                 _logger.LogError(ex, ex.Message);
 
-                var serializedResponse = JsonSerializer.Serialize(responseModel);
+                var serializedResponse = JsonSerializer.Serialize(apiResponseModel);
 
                 await httpResponse.WriteAsync(serializedResponse);
             }

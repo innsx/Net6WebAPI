@@ -6,6 +6,7 @@ using MediatR;
 
 namespace Application.CQRSs.Products.Commands
 {
+    //MediatR.IRequest: Marks this class as a request for MediatR to pass to a handler.
     public class CreateProductCommand : IRequest<CustomizedAPIResponse<int>>
     {
         public string? Name { get; set; }
@@ -32,13 +33,18 @@ namespace Application.CQRSs.Products.Commands
             {
                 _context = context;
                 _mapper = mapper;
+                //AuthenticatedUser, using the injected IHttpContextAccessor to get user details
+                //from the HttpContext.User property (which is a ClaimsPrincipal). 
                 _authenticatedUser = authenticatedUser;
             }
 
             public async Task<CustomizedAPIResponse<int>> Handle(CreateProductCommand createProduct, CancellationToken cancellationToken)
             {
-                //HERE is the ACTUAL MAPPING TAKES PLACED
+                //this line is the AUTO-MAPPER ACTUAL MAPPING TAKES PLACED
                 var product = _mapper.Map<Product>(createProduct);
+
+                //explicitly properties mappings
+                //using IAuthenticatedUser, we can get the CURRENT LOGIN USER's ID 
                 product.CreatedBy = _authenticatedUser.UserId;
                 product.CreatedOn = DateTime.Now;
 

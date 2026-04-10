@@ -2,7 +2,7 @@
 
 namespace Application.DTOs
 {
-    public class AuthenticationRequest
+    public class AuthnRequestDto
     {
         [Required]
         public string? Email { get; set; }

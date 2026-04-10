@@ -1,45 +1,51 @@
-using Application;
+﻿using Application;
 using Application.Interfaces;
 using Infastructure;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Persistence;
 using Serilog;
-using Serilog.Parsing;
-using Serilog.Sinks.MSSqlServer;
-using System.Text;
 using WebApi.ExceptionHandlers;
 using WebApi.Services;
 using WebApi.SharedServices;
-using static Serilog.Sinks.MSSqlServer.ColumnOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 //declaring a logger configurations
-var logger = new LoggerConfiguration()
+var loggerConfiguration = new LoggerConfiguration()
     .ReadFrom
+    //.Destructure
     .Configuration(builder.Configuration)  //this line tell .NET to READ logger configuratons setup in aspsettings.json 
     .CreateLogger();
 
-////.Destructure. Serilog destructuring is the process of converting a complex .NET object into a structured format (like JSON)
-//rather than simply calling its ToString() method.
-//This allows you to log the object's internal properties,
-//which is crucial for structured logging and analysis with tools like
+    //.Destructure -- Serilog destructuring is the process of converting a complex .NET object
+    //into a structured format (like JSON)
+    //rather than simply calling its ToString() method.
+    //This allows you to log the object's internal properties,
+    //which is crucial for structured logging and analysis with tools like
 
 try
 {
-    // Add services to the container.
+    // ************ Add services to the container. ****************
 
-    //OPTION1: these lines connects Serilog to .NET Built-in logging system (ILogger)
-    //in ASP.NET Core Application
-    Log.Logger = logger;
-    builder.Host.UseSerilog(logger);
+    //OPTION1: these lines connects Serilog to .NET Built-in logging system (ILogger) in ASP.NET Core Application
+    //Log.Logger = loggerConfiguration; is the standard way in Serilog to assign a configured Logger instance to the global static Log.Logger property.
+    //It defines the logging pipeline, including minimum levels and sinks (destinations),
+    //ensuring that global Log.Information() calls are directed to the configured sinks
+    Log.Logger = loggerConfiguration;
 
-    //OPTION2: connects Serilog to .NET Built-in logging system
+    // this is used to configure Serilog as the sole logging provider in a .NET application's generic host,
+    // replacing any default logging providers
+    builder.Host.UseSerilog(loggerConfiguration);
+
+    //OPTION2: This approach lets you dynamically change the logging setup without redeploying the application.
     //builder.Host.UseSerilog((context, loggerConfig) =>
     //loggerConfig.ReadFrom.Configuration(context.Configuration));
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers().AddJsonOptions(options =>
+    {
+        //this tells the NET Framework to DIABLED camelCase in JSON output
+        // and perserve property names as DEFINED in C# classes
+        options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    });
 
     // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
     builder.Services.AddEndpointsApiExplorer();
@@ -69,89 +75,14 @@ try
     //the IHttpContextAccessor interface with the dependency injection (DI) container.
     builder.Services.AddHttpContextAccessor();
 
-    builder.Services.AddAuthentication(options =>
-    {
-        /*
-         Default Behavior: When a request is made to an endpoint marked with the [Authorize] attribute 
-            (without specifying a scheme), the application will use the JwtBearer handler to validate the user's credentials.
-        Authentication Process: The JwtBearer handler expects a JWT token, 
-            typically sent in the HTTP Authorization header in the format Bearer <token>.
-        Scheme Name: JwtBearerDefaults.AuthenticationScheme is a constant string with the value "Bearer". 
-            Using this constant ensures consistency and helps avoid typos.
-        Context: This setting is crucial in API-only projects where cookie authentication 
-            (the typical default in web apps) is not used, allowing the API to rely solely on stateless JWTs for security.     
-         */
+    builder.Services.AddAuthenticationServiceExt(builder.Configuration);
+    // ************ Add services to the container ENDS. ****************
 
-        //DefaultAuthenticateScheme: The scheme used to authenticate a request (building the user's identity/principal)
-        //sets the default authentication mechanism for your ASP.NET Core application
-        //to use JWT (JSON Web Token) bearer tokens when processing incoming requests
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
 
-        //DefaultChallengeScheme: The scheme used when an unauthenticated user tries to access
-        //a protected resource (e.g., returning a 401 Unauthorized response).
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-
-        //OPTION: DefaultScheme: A fallback default for all authentication actions.
-        //options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-        //options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-
-    }).AddJwtBearer(options =>
-    {
-        options.RequireHttpsMetadata = false;
-
-        options.SaveToken = false;
-
-        //new TokenValidationParameters() is a class in .NET (Microsoft.IdentityModel.Tokens)
-        //used to define rules for validating JWT tokens, such as checking the issuer, audience, lifetime,
-        //and signature. It is crucial for security in APIs and web apps,
-        //usually configured within JwtBearerOptions to set validation keys and expected values.
-        options.TokenValidationParameters = new TokenValidationParameters()
-        {
-            //Key Configuration Properties
-            ValidateIssuerSigningKey = true,
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero,
-            ValidIssuer = builder.Configuration["JWTSettings:Issuer"],
-            ValidAudience = builder.Configuration["JWTSettings:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWTSettings:Key"]!))
-        };
-
-        //new JwtBearerEvents() is used in ASP.NET Core to provide a class instance with customizable callback methods
-        //(events) that allow developers to hook into and control the JWT authentication process.
-        options.Events = new JwtBearerEvents()
-        {
-            OnAuthenticationFailed = authFailedContext =>
-            {
-                //OnAuthenticationFailed: Executes upon validation failure, enabling custom error logging
-                //or response header manipulation.
-                authFailedContext.NoResult();
-                authFailedContext.Response.StatusCode = 500;
-                authFailedContext.Response.ContentType = "text/plain";
-
-                return authFailedContext.Response.WriteAsync(authFailedContext.Exception.ToString());
-            },
-            OnChallenge = challengeContext =>
-            {
-                //OnChallenge: Invoked when a 401 Unauthorized response is triggered,
-                //allowing for customization of the response body or headers.
-                challengeContext.HandleResponse();
-                challengeContext.Response.ContentType = "text/plain";
-                challengeContext.Response.StatusCode = 401;
-
-                return challengeContext.Response.WriteAsync("User is Unauthorized.");
-            },
-            OnForbidden = forbidContext =>
-            {
-                forbidContext.Response.StatusCode = 403;
-                forbidContext.Response.ContentType = "text/plain";
-
-                return forbidContext.Response.WriteAsync("Forbidden, Access is denied to to insufficient permissions.");
-            }
-        };
-    });
-
+    // ************ this is the Middleware Pipeline phase. **************
+    //You use the app object to define how the application responds to HTTP requests
+    //using methods like app.UseStaticFiles(), app.UseRouting(), or app.MapGet()... etc.
+    //Once this builder.Build() method is called, the DI container configurations is built. 
     var app = builder.Build();
 
     // Configure the HTTP request pipeline.
@@ -189,6 +120,20 @@ finally
 
 
 
+
+//************ Recommended Middlewares Execution Order ******************************************
+//app.UseExceptionHandler();                   // 1. Catch all unhandled exceptions
+//app.UseHttpsRedirection();                   // 2. Redirect HTTP → HTTPS
+//app.UseRouting();                            // 3. Match routes
+//app.UseCors();                               // 4. CORS headersapp.UseAuthentication();                     
+//app.UseAuthentication();                     // 5. Establish identity
+//app.UseAuthorization();                      // 6. Check permissions
+//app.UseOutputCache();                        // 7. Serve cached responses
+//app.UseRateLimiter();                        // 8. Enforce rate limits
+//app.UseResponseCompression();                // 9. Compress responses
+//app.UseMiddleware<RequestLoggingMiddleware>();// 10. Custom middleware                                                  
+//app.UseSerilogRequestLogging();              //Use Serilog
+//app.MapControllers();                        // 11. Execute endpoints
 
 
 //builder.Services.AddAuthentication(options =>

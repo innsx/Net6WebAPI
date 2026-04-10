@@ -38,16 +38,19 @@ namespace Application
             //that implement MediatR interfaces (like IRequestHandler, IRequest, INotificationHandler, etc.).
             services.AddMediatR(conf => conf.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
-            ////Assembly Scanning: The Assembly.GetExecutingAssembly() argument tells FluentValidation
+            //Register the validator to enable automatic validation: 
+            //Assembly Scanning: The Assembly.GetExecutingAssembly() argument tells FluentValidation
             //to scan the specific assembly where this line of code is running
             //      (typically the main application project and then Register Fluent Validations
             services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+            //Scan a specific assembly (e.g., in a multi-project solution):
 
-           //This code registers a custom FluentValidationBehaviors<,> class as a generic pipeline behavior
-           //for MediatR in ASP.NET Core.
-           //It acts as middleware, automatically validating incoming commands or queries using FluentValidation
-           //before they reach their handler.
-           //It is added in Program.cs or Startup.cs to ensure all requests are validated
+
+            //This code registers a custom FluentValidationBehaviors<,> class as a generic pipeline behavior
+            //for MediatR in ASP.NET Core.
+            //It acts as middleware, automatically validating incoming commands or queries using FluentValidation
+            //before they reach their handler.
+            //It is added in Program.cs or Startup.cs to ensure all requests are validated
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehaviors<,>));
             //Purpose: Ensures every request validated via FluentValidation automatically before processing.
 

@@ -2,7 +2,7 @@
 
 namespace Application.DTOs
 {
-    public class AuthenticationResponse
+    public class AuthnResponseDto
     {
         public Guid Id { get; set; }
 

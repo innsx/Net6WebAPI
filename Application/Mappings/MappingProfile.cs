@@ -25,9 +25,8 @@ namespace Application.Mappings
             //Mapping from Obj1 to obj2 in its enteriely with a SPECIFIC PROPERTY MAPPING
             //with REVERSE MAPPING from obj2 to obj1
             CreateMap<CreateProductCommand, Product>()
-                .ForMember(dest => dest.Description,
-                src => src.MapFrom(
-                    src => src.Remarks)).ReverseMap();
+                .ForMember(dest => dest.Description, src => src.MapFrom(src => src.Remarks))
+                .ReverseMap();
         }
     }
 }

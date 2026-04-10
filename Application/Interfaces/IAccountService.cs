@@ -7,7 +7,7 @@ namespace Application.Interfaces
     {
         Task<CustomizedAPIResponse<Guid>> RegisterUser(RegisterUserDto registerUserDto);
 
-        Task <CustomizedAPIResponse<AuthenticationResponse>> Authenticate(AuthenticationRequest authenticationRequest);
+        Task <CustomizedAPIResponse<AuthnResponseDto>> Authenticate(AuthnRequestDto authenticationRequest);
 
         Task<CustomizedAPIResponse<bool>> ConfirmEmail(string userId, string token);
 
